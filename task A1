@@ -1,0 +1,100 @@
+#include <stdio.h>
+#include <string.h>
+
+typedef struct {
+    int year, month, day;
+} Date;
+
+typedef struct {
+    long id;
+    char name[80];
+    char group[4];
+    char phone[16];
+    int age;
+    Date last_donation;
+} Donor;
+
+typedef struct {
+    size_t count;
+    long youngest_id;
+} EligibilitySummary;
+
+int is_eligible(const Donor *donor, int days_since_donation)
+{
+    return donor != NULL &&
+           donor->age >= 18 &&
+           donor->age <= 65 &&
+           days_since_donation >= 90;
+}
+
+/* Pointer-output version: count is returned; youngest ID is written out. */
+size_t find_eligible(const Donor donors[], size_t n,
+                     const char group[],
+                     const int days_since_donation[],
+                     long *youngest_id)
+{
+    size_t count = 0;
+    int youngest_age = 131;
+
+    if (youngest_id != NULL)
+        *youngest_id = -1;
+
+    for (size_t i = 0; i < n; ++i) {
+        if (strcmp(donors[i].group, group) == 0 &&
+            is_eligible(&donors[i], days_since_donation[i])) {
+            ++count;
+
+            if (donors[i].age < youngest_age) {
+                youngest_age = donors[i].age;
+                if (youngest_id != NULL)
+                    *youngest_id = donors[i].id;
+            }
+        }
+    }
+
+    return count;
+}
+
+/* Structure-return alternative. */
+EligibilitySummary summarize_eligible(
+    const Donor donors[], size_t n, const char group[],
+    const int days_since_donation[])
+{
+    EligibilitySummary result = {0, -1};
+    int youngest_age = 131;
+
+    for (size_t i = 0; i < n; ++i) {
+        if (strcmp(donors[i].group, group) == 0 &&
+            is_eligible(&donors[i], days_since_donation[i])) {
+            ++result.count;
+
+            if (donors[i].age < youngest_age) {
+                youngest_age = donors[i].age;
+                result.youngest_id = donors[i].id;
+            }
+        }
+    }
+
+    return result;
+}
+
+int main(void)
+{
+    Donor donors[] = {
+        {7001, "Asha", "O+", "9876543210", 22, {2025, 10, 14}},
+        {7002, "Ravi", "O+", "9876543211", 35, {2026, 10, 1}},
+        {7003, "Mina", "A+", "9876543212", 19, {2025, 9, 20}}
+    };
+    int days[] = {120, 30, 100};
+    size_t n = sizeof donors / sizeof donors[0];
+
+    long youngest;
+    size_t count = find_eligible(donors, n, "O+", days, &youngest);
+    printf("Eligible O+ count=%zu youngest ID=%ld\n", count, youngest);
+
+    EligibilitySummary s = summarize_eligible(donors, n, "O+", days);
+    printf("Structure result: count=%zu youngest ID=%ld\n",
+           s.count, s.youngest_id);
+
+    return 0;
+}
