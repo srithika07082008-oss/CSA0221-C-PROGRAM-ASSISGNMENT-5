@@ -1,0 +1,42 @@
+#include <stdio.h>
+#include <string.h>
+#include <errno.h>
+
+int main(int argc, char *argv[])
+{
+    char name[32];
+
+    if (argc != 2) {
+        fprintf(stderr, "Usage: %s DONOR_FILE\n", argv[0]);
+        return 2;
+    }
+
+    FILE *fp = fopen(argv[1], "r");
+    if (fp == NULL) {
+        perror(argv[1]);
+        return 1;
+    }
+    fclose(fp);
+
+    printf("Enter donor name: ");
+
+    if (fgets(name, sizeof name, stdin) == NULL) {
+        if (ferror(stdin))
+            perror("fgets");
+        else
+            fprintf(stderr, "No name entered.\n");
+        return 1;
+    }
+
+    size_t length = strlen(name);
+
+    if (length > 0 && name[length - 1] == '\n') {
+        name[length - 1] = '\0';
+    } else if (!feof(stdin)) {
+        fprintf(stderr, "Name is too long; maximum is 31 characters.\n");
+        return 1;
+    }
+
+    printf("Name received: %s\n", name);
+    return 0;
+}
