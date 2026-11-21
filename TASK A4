@@ -1,0 +1,79 @@
+#include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
+#include <stdint.h>
+
+typedef struct {
+    int id;
+    char group[4];
+} Donor;
+
+typedef struct {
+    Donor *data;
+    size_t size;
+    size_t capacity;
+} DonorList;
+
+int add_donor(DonorList *list, int id, const char *group)
+{
+    if (list == NULL || group == NULL)
+        return 0;
+
+    if (strlen(group) > 3)
+        return 0;
+
+    if (list->size == list->capacity) {
+        size_t new_capacity =
+            (list->capacity == 0) ? 2 : list->capacity * 2;
+
+        if (new_capacity < list->capacity ||
+            new_capacity > SIZE_MAX / sizeof *list->data)
+            return 0;
+
+        Donor *temporary =
+            realloc(list->data, new_capacity * sizeof *list->data);
+
+        if (temporary == NULL)
+            return 0; /* Original list->data is still valid. */
+
+        list->data = temporary;
+        list->capacity = new_capacity;
+    }
+
+    list->data[list->size].id = id;
+    strcpy(list->data[list->size].group, group);
+    ++list->size;
+
+    return 1;
+}
+
+void destroy_list(DonorList *list)
+{
+    if (list != NULL) {
+        free(list->data);
+        list->data = NULL;
+        list->size = 0;
+        list->capacity = 0;
+    }
+}
+
+int main(void)
+{
+    DonorList list = {NULL, 0, 0};
+    const char *groups[] = {"O+", "A+", "B-", "AB+", "O-"};
+
+    for (size_t i = 0; i < sizeof groups / sizeof groups[0]; ++i) {
+        if (!add_donor(&list, 7001 + (int)i, groups[i])) {
+            fprintf(stderr, "Could not add donor.\n");
+            destroy_list(&list);
+            return 1;
+        }
+
+        printf("added %d (%s): size=%zu capacity=%zu\n",
+               list.data[i].id, list.data[i].group,
+               list.size, list.capacity);
+    }
+
+    destroy_list(&list);
+    return 0;
+}
